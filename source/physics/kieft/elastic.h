@@ -158,7 +158,7 @@ public:
 		}
 
 		el._phonon_loss = static_cast<real>(mat.get_property_quantity("phonon_loss") / units::eV);
-		el._recoil_const = 2 * static_cast<real>(
+		el._recoil_const =  static_cast<real>( //removed factor 2 from orginal implementation 
 			2 * (9.109383e-28 * units::g) // 2 * (electron mass)
 			/ mat.get_property_quantity("effective_A"));
 
