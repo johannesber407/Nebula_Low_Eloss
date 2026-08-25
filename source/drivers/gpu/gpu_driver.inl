@@ -76,10 +76,12 @@ CPU gpu_driver<scatter_list_t, intersect_t, geometry_manager_t>::gpu_driver(
 	 */
 	cuda::cuda_new<status_t>(&buffer_dout_status, particle_capacity);
 	cuda::cuda_new<particle>(&buffer_dout_particles, particle_capacity);
+	cuda::cuda_new<real>(&buffer_dout_path_lengths, particle_capacity);
 	cuda::cuda_new<uint32_t>(&buffer_dout_tags, particle_capacity);
 
 	cudaMallocHost(&buffer_hout_status, particle_capacity*sizeof(status_t));
 	cudaMallocHost(&buffer_hout_particles, particle_capacity*sizeof(particle));
+	cudaMallocHost(&buffer_hout_path_lengths, particle_capacity*sizeof(real));
 	cudaMallocHost(&buffer_hout_tags, particle_capacity*sizeof(uint32_t));
 
 	// Fill device arrays with particle manager's default values.
@@ -103,6 +105,7 @@ CPU gpu_driver<scatter_list_t, intersect_t, geometry_manager_t>::~gpu_driver()
 
 	cudaFree(buffer_dout_status);
 	cudaFree(buffer_dout_particles);
+	cudaFree(buffer_dout_path_lengths);
 	cudaFree(buffer_dout_tags);
 
 	cudaFreeHost(buffer_hin_data);
@@ -111,6 +114,7 @@ CPU gpu_driver<scatter_list_t, intersect_t, geometry_manager_t>::~gpu_driver()
 
 	cudaFreeHost(buffer_hout_status);
 	cudaFreeHost(buffer_hout_particles);
+	cudaFreeHost(buffer_hout_path_lengths);
 	cudaFreeHost(buffer_hout_tags);
 
 	cudaStreamDestroy(buffer_stream);
@@ -262,6 +266,8 @@ CPU void gpu_driver<scatter_list_t, intersect_t, geometry_manager_t>::buffer_det
 		_particles._capacity*sizeof(status_t), cudaMemcpyDeviceToDevice);
 	cudaMemcpy(buffer_dout_particles, _particles._particles,
 		_particles._capacity*sizeof(particle), cudaMemcpyDeviceToDevice);
+	cudaMemcpy(buffer_dout_path_lengths, _particles._path_lengths,
+		_particles._capacity*sizeof(real), cudaMemcpyDeviceToDevice);
 	cudaMemcpy(buffer_dout_tags, _particles._tags,
 		_particles._capacity*sizeof(uint32_t), cudaMemcpyDeviceToDevice);
 
@@ -283,6 +289,8 @@ CPU auto gpu_driver<scatter_list_t, intersect_t, geometry_manager_t>::flush_buff
 		cudaMemcpyDeviceToHost, buffer_stream);
 	cudaMemcpyAsync(buffer_hout_particles, buffer_dout_particles, capacity*sizeof(particle),
 		cudaMemcpyDeviceToHost, buffer_stream);
+	cudaMemcpyAsync(buffer_hout_path_lengths, buffer_dout_path_lengths, capacity*sizeof(real),
+		cudaMemcpyDeviceToHost, buffer_stream);
 	cudaMemcpyAsync(buffer_hout_tags, buffer_dout_tags, capacity*sizeof(uint32_t),
 		cudaMemcpyDeviceToHost, buffer_stream);
 	cudaStreamSynchronize(buffer_stream);
@@ -298,7 +306,8 @@ CPU auto gpu_driver<scatter_list_t, intersect_t, geometry_manager_t>::flush_buff
 
 		if (buffer_hout_status[i] == particle_manager_t::DETECTED)
 		{
-			function(buffer_hout_particles[i], buffer_hout_tags[i]);
+			function(buffer_hout_particles[i], buffer_hout_tags[i],
+				buffer_hout_path_lengths[i]);
 		}
 	}
 
@@ -467,13 +476,14 @@ __global__ void kernels::init(
 		// No triangle intersection: move to scattering position.
 		// Scatter there later (after sorting)
 		this_particle.pos += this_particle.dir * next_scatter.distance;
-		particles.set_scatter_event(particle_idx, next_scatter.type);
+		particles.set_scatter_event(particle_idx, next_scatter.type, next_scatter.distance);
 	}
 	else
 	{
 		// Triangle intersection: move to triangle position.
 		this_particle.pos += this_particle.dir*next_intersect.isect_distance;
-		particles.set_intersect_event(particle_idx, next_intersect.isect_triangle);
+		particles.set_intersect_event(particle_idx, next_intersect.isect_triangle,
+			next_intersect.isect_distance);
 	}
 
 	// Store new particle data in global memory

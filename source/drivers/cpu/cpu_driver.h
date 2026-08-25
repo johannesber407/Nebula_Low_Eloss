@@ -65,7 +65,7 @@ public:
 	 * particle is part of.
 	 *
 	 * \param function Callback function to be called for each detected particle.
-	 *                 Should have signature void(particle const &, uint32_t).
+	 *                 Should have signature void(particle const &, uint32_t, real).
 	 */
 	template<typename detect_function>
 	void flush_detected(detect_function function);

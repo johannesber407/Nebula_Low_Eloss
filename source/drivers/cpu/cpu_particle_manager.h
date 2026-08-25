@@ -94,6 +94,7 @@ protected:
 		uint8_t next_scatter;
 		material_index_t current_material;
 		particle particle_data;
+		real path_length;
 		primary_tag_t primary_tag; // Tag belonging to primary electron
 		uint32_t secondary_tag;    // Unique tag for this electron in the primary's cascade
 		triangle* last_triangle;

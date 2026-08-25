@@ -161,7 +161,7 @@ int main(int argc, char** argv)
 		driver d(
 			inter, materials, geometry,
 			energy_threshold, materials.get_max_energy(), seed);
-		output_buffer buff(out_file, 1024*(7*sizeof(float) + 2*sizeof(int)));
+		output_buffer buff(out_file, 1024*(8*sizeof(float) + 2*sizeof(int)));
 
 		for (;;)
 		{
@@ -180,11 +180,12 @@ int main(int argc, char** argv)
 			d.simulate_to_end();
 
 			// Flush output data
-			d.flush_detected([&buff,&pixels](particle p, uint32_t t)
+			d.flush_detected([&buff,&pixels](particle p, uint32_t t, real path_length)
 			{
-				buff.add(std::array<float, 7>{
+					buff.add(std::array<float, 8>{
 					p.pos.x, p.pos.y, p.pos.z,
-					p.dir.x, p.dir.y, p.dir.z, p.kin_energy});
+						p.dir.x, p.dir.y, p.dir.z, p.kin_energy,
+						static_cast<float>(path_length)});
 				buff.add(std::array<int, 2>{
 					pixels[t].x, pixels[t].y});
 			});

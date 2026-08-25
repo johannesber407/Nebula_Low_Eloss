@@ -90,7 +90,7 @@ public:
 	 * particle is part of.
 	 *
 	 * \param function Callback function to be called for each detected particle.
-	 *                 Should have signature void(particle const &, uint32_t).
+	 *                 Should have signature void(particle const &, uint32_t, real).
 	 */
 	template<typename detect_function>
 	CPU void flush_detected(detect_function function);
@@ -219,9 +219,11 @@ private:
 	// Output buffers. "dout" are on device, "hout" on host.
 	status_t* buffer_dout_status    = nullptr;
 	particle* buffer_dout_particles = nullptr;
+	real*     buffer_dout_path_lengths = nullptr;
 	uint32_t* buffer_dout_tags      = nullptr;
 	status_t* buffer_hout_status    = nullptr;
 	particle* buffer_hout_particles = nullptr;
+	real*     buffer_hout_path_lengths = nullptr;
 	uint32_t* buffer_hout_tags      = nullptr;
 
 	gpu_driver(gpu_driver const &) = delete;

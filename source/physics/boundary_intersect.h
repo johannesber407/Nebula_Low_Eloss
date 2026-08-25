@@ -15,6 +15,7 @@
  *                                  doi:10.1088/0022-3727/41/21/215310)
  */
 template<
+	bool surface_excitations = true,
 	bool quantum_transmission = true,
 	bool interface_refraction = true,
 	bool interface_absorption = false>
@@ -28,6 +29,7 @@ struct boundary_intersect
 		stream << std::boolalpha <<
 			" * Material boundary crossing model\n"
 			"   Options:\n"
+			"     - Surface excitations: " << surface_excitations << "\n"
 			"     - Quantum mechanical transmission: " << quantum_transmission << "\n"
 			"     - Interface refraction: " << interface_refraction << "\n"
 			"     - Empirical interface absorption: " << interface_absorption << "\n";

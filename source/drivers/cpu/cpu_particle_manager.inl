@@ -32,6 +32,7 @@ auto cpu_particle_manager<material_manager_t>::push(
 			0,
 			-123,  // TODO: vacuum
 			primary_particles[i],
+			0,
 			tags[i],
 			0,
 			nullptr
@@ -50,7 +51,8 @@ void cpu_particle_manager<material_manager_t>::flush_detected(detect_function fu
 	{
 		if (this_particle.status == DETECTED)
 		{
-			func(this_particle.particle_data, this_particle.primary_tag);
+			func(this_particle.particle_data, this_particle.primary_tag,
+				this_particle.path_length);
 			this_particle.status = TERMINATED;
 		}
 	}
@@ -188,6 +190,7 @@ PHYSICS void cpu_particle_manager<material_manager_t>::create_secondary(
 		0,
 		get_material_index(primary_idx),
 		secondary_particle,
+		0,
 		primary_tag,
 		cascades[primary_tag].next_secondary_tag++,
 		nullptr
@@ -223,6 +226,7 @@ PHYSICS void cpu_particle_manager<material_manager_t>::set_scatter_event(
 	{
 		particles[i].status = NO_EVENT;
 	}
+	particles[i].path_length += event.distance;
 	particles[i].particle_data.pos += normalised(particles[i].particle_data.dir) * event.distance;
 }
 template<typename material_manager_t>
@@ -231,6 +235,7 @@ PHYSICS void cpu_particle_manager<material_manager_t>::set_intersect_event(
 {
 	particles[i].status = INTERSECT_EVENT;
 	particles[i].last_triangle = event.isect_triangle;
+	particles[i].path_length += event.isect_distance;
 	particles[i].particle_data.pos += normalised(particles[i].particle_data.dir) * event.isect_distance;
 }
 

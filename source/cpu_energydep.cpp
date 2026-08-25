@@ -169,7 +169,7 @@ int main(int argc, char** argv)
 			inter, materials, geometry,
 			energy_threshold, materials.get_max_energy(), seed);
 		output_buffer detect_buff(detect_out,
-			1024*(7*sizeof(float) + 2*sizeof(int)));
+			1024*(8*sizeof(float) + 2*sizeof(int)));
 		output_buffer deposit_buff(deposit_out,
 			1024*1024*(5*sizeof(float) + 2*sizeof(int)));
 
@@ -197,11 +197,12 @@ int main(int argc, char** argv)
 			});
 
 			// Flush output data
-			d.flush_detected([&detect_buff, &pixels](particle const & p, uint32_t t)
+			d.flush_detected([&detect_buff, &pixels](particle const & p, uint32_t t, real path_length)
 			{
-				detect_buff.add(std::array<float, 7>{
+					detect_buff.add(std::array<float, 8>{
 					p.pos.x, p.pos.y, p.pos.z,
-					p.dir.x, p.dir.y, p.dir.z, p.kin_energy});
+						p.dir.x, p.dir.y, p.dir.z, p.kin_energy,
+						static_cast<float>(path_length)});
 				detect_buff.add(std::array<int, 2>{
 					pixels[t].x, pixels[t].y});
 			});

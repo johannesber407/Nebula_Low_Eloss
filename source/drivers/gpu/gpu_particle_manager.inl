@@ -19,6 +19,7 @@ CPU gpu_particle_manager<material_manager_t>
 	cuda::cuda_new<status_t>(&manager._status, capacity);
 	cuda::cuda_new<particle_index_t>(&manager._particle_idx, capacity);
 	cuda::cuda_new<particle>(&manager._particles, capacity);
+	cuda::cuda_new<real>(&manager._path_lengths, capacity);
 	cuda::cuda_new<uint32_t>(&manager._tags, capacity);
 	cuda::cuda_new<material_index_t>(&manager._material_idx, capacity);
 	cuda::cuda_new<triangle*>(&manager._last_triangle, capacity);
@@ -47,6 +48,12 @@ CPU gpu_particle_manager<material_manager_t>
 		{
 			for (particle_index_t i = 0; i < capacity; ++i)
 				device[i] = nullptr;
+		});
+	cuda::cuda_mem_scope<real>(manager._path_lengths, capacity,
+		[capacity](real* device)
+		{
+			for (particle_index_t i = 0; i < capacity; ++i)
+				device[i] = 0;
 		});
 
 
@@ -85,6 +92,7 @@ CPU void gpu_particle_manager<material_manager_t>::destroy(
 	cudaFree(manager._status);
 	cudaFree(manager._particle_idx);
 	cudaFree(manager._particles);
+	cudaFree(manager._path_lengths);
 	cudaFree(manager._material_idx);
 	cudaFree(manager._last_triangle);
 	cudaFree(manager._radix_temp);
@@ -95,6 +103,7 @@ CPU void gpu_particle_manager<material_manager_t>::destroy(
 	manager._status = nullptr;
 	manager._particle_idx = nullptr;
 	manager._particles = nullptr;
+	manager._path_lengths = nullptr;
 	manager._material_idx = nullptr;
 	manager._last_triangle = nullptr;
 	manager._radix_temp = nullptr;
@@ -158,6 +167,12 @@ CPU auto gpu_particle_manager<material_manager_t>::push(
 			for(auto idx : free_indices)
 				last_triangle_p[idx] = nullptr;
 		});
+	cuda::cuda_mem_scope<real>(_path_lengths, _capacity,
+			[&free_indices](real* path_length_p)
+			{
+				for(auto idx : free_indices)
+					path_length_p[idx] = 0;
+			});
 
 	// free_indices.size() can never return more than the maximum value for particle_index_t
 	return static_cast<particle_index_t>(free_indices.size());
@@ -363,6 +378,7 @@ PHYSICS void gpu_particle_manager<material_manager_t>::create_secondary(
 	const particle_index_t secondary_idx = get_secondary_slot();
 	_status[secondary_idx] = NEW_SECONDARY;
 	_particles[secondary_idx] = secondary_particle;
+	_path_lengths[secondary_idx] = 0;
 	_tags[secondary_idx] = _tags[primary_idx];
 	_material_idx[secondary_idx] = _material_idx[primary_idx];
 	_last_triangle[secondary_idx] = nullptr;
@@ -389,8 +405,9 @@ PHYSICS void gpu_particle_manager<material_manager_t>::detect(
 
 template<typename material_manager_t>
 PHYSICS void gpu_particle_manager<material_manager_t>::set_scatter_event(
-	particle_index_t i, uint8_t event)
+	particle_index_t i, uint8_t event, real distance)
 {
+	_path_lengths[i] += distance;
 	// TODO: event types hardcoded here
 	switch (event)
 	{
@@ -407,10 +424,11 @@ PHYSICS void gpu_particle_manager<material_manager_t>::set_scatter_event(
 }
 template<typename material_manager_t>
 PHYSICS void gpu_particle_manager<material_manager_t>::set_intersect_event(
-	particle_index_t i, triangle* t)
+	particle_index_t i, triangle* t, real distance)
 {
 	_status[i] = INTERSECT_EVENT;
 	_last_triangle[i] = t;
+	_path_lengths[i] += distance;
 }
 
 template<typename material_manager_t>

@@ -178,7 +178,7 @@ void worker_thread(worker_data& data,
 	// Start simulation
 	d.allocate_input_buffers(data.batch_size);
 	d.push_to_buffer(data.primaries);
-	output_buffer buff(data.out_file, 1024*(7*sizeof(float) + 2*sizeof(int)));
+	output_buffer buff(data.out_file, 1024*(8*sizeof(float) + 2*sizeof(int)));
 
 	for (;;)
 	{
@@ -196,11 +196,12 @@ void worker_thread(worker_data& data,
 		d.push_to_buffer(data.primaries);
 
 		// Output detected electrons from buffer
-		auto running_count = d.flush_buffered([&buff, &data](particle p, uint32_t t)
+		auto running_count = d.flush_buffered([&buff, &data](particle p, uint32_t t, real path_length)
 		{
-			buff.add(std::array<float, 7>{
+			buff.add(std::array<float, 8>{
 				p.pos.x, p.pos.y, p.pos.z,
-				p.dir.x, p.dir.y, p.dir.z, p.kin_energy});
+				p.dir.x, p.dir.y, p.dir.z, p.kin_energy,
+				static_cast<float>(path_length)});
 			buff.add(std::array<int, 2>{
 				data.pixels[t].x, data.pixels[t].y});
 		});

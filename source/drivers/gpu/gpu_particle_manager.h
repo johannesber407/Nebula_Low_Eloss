@@ -65,8 +65,8 @@ public:
 	// Detect particle
 	inline PHYSICS void detect(particle_index_t i);
 	// Set next scattering event
-	inline PHYSICS void set_scatter_event(particle_index_t i, uint8_t event);
-	inline PHYSICS void set_intersect_event(particle_index_t i, triangle* t);
+	inline PHYSICS void set_scatter_event(particle_index_t i, uint8_t event, real distance);
+	inline PHYSICS void set_intersect_event(particle_index_t i, triangle* t, real distance);
 
 	// Set particle to pending (for an inelastic event)
 	inline PHYSICS void pending(particle_index_t i);
@@ -80,6 +80,7 @@ private:
 	status_t*         _status        = nullptr; // status_enum for each particle
 	particle_index_t* _particle_idx  = nullptr; // Particle index, sorted by status
 	particle*         _particles     = nullptr; // The actual particle data (position, direction, energy)
+	real*             _path_lengths  = nullptr; // Cumulative path length for each particle
 	uint32_t*         _tags          = nullptr; // Each particle has an associated tag
 	material_index_t* _material_idx  = nullptr; // Current material the particle is in
 	triangle**        _last_triangle = nullptr; // Pointer to last intersected triangle
