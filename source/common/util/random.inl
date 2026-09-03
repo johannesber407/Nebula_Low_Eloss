@@ -24,6 +24,10 @@ namespace detail
 			return std::generate_canonical<real, std::numeric_limits<real>::digits>(_generator);
 #endif
 		}
+		PHYSICS unsigned int poisson(real mean)
+		{
+			return std::poisson_distribution<unsigned int>(mean)(_generator);
+		}
 
 	private:
 		std::mt19937 _generator;
@@ -53,6 +57,14 @@ namespace detail
 #endif // USE_DOUBLE
 #else // CUDA_COMPILING
 			// TODO: proper error message.
+			return 0;
+#endif // CUDA_COMPILING
+		}
+		PHYSICS unsigned int poisson(real mean)
+		{
+#if CUDA_COMPILING
+			return curand_poisson(&_rand_state, mean);
+#else // CUDA_COMPILING
 			return 0;
 #endif // CUDA_COMPILING
 		}

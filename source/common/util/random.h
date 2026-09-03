@@ -81,6 +81,14 @@ public:
 	{
 		return -tau*logr(unit());
 	}
+
+	/**
+	 * \brief Poisson distributed non-negative integer with the given mean.
+	 */
+	PHYSICS unsigned int poisson(real mean)
+	{
+		return base_type::poisson(mean);
+	}
 };
 
 }} // namespace nbl::util

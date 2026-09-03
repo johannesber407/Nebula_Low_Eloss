@@ -105,7 +105,7 @@ namespace
 	 * The std::vector contains the actual values, the quantity contains the
 	 * associated unit which acts like a multiplier for all values in the vector.
 	 */
-	std::pair<std::vector<double>, units::quantity<double>> get_dimscale(
+	std::pair<std::vector<double>, units::quantity<double>> read_dimscale_data(
 		hid_t dataset,
 		int dim,
 		units::unit_parser<double> const & parser)
@@ -298,7 +298,7 @@ util::linspace<units::quantity<double>> hdf5_file::get_lin_dimscale(
 	if (dataset < 0)
 		throw std::runtime_error("Could not read table '" + dataset_name + '\'');
 
-	auto dimscale_data = get_dimscale(dataset, dim, parser);
+	auto dimscale_data = read_dimscale_data(dataset, dim, parser);
 
 	// If no dimension scale was found, fill between 0 and 1
 	if (dimscale_data.first.size() == 0)
@@ -325,6 +325,28 @@ util::linspace<units::quantity<double>> hdf5_file::get_lin_dimscale(
 		N_expected);
 }
 
+std::vector<units::quantity<double>> hdf5_file::get_dimscale(
+	std::string const & dataset_name,
+	int dim,
+	int N_expected,
+	units::unit_parser<double> const & parser) const
+{
+	hid_t dataset = H5Dopen(_file, dataset_name.c_str(), H5P_DEFAULT);
+	if (dataset < 0)
+		throw std::runtime_error("Could not read table '" + dataset_name + '\'');
+
+	auto dimscale_data = read_dimscale_data(dataset, dim, parser);
+	H5Dclose(dataset);
+	if (dimscale_data.first.size() != (size_t)N_expected)
+		throw std::runtime_error("Dimension scale has unexpected size.");
+
+	std::vector<units::quantity<double>> result;
+	result.reserve(dimscale_data.first.size());
+	for (double value : dimscale_data.first)
+		result.push_back(value * dimscale_data.second);
+	return result;
+}
+
 util::geomspace<units::quantity<double>> hdf5_file::get_log_dimscale(
 	std::string const & dataset_name,
 	int dim,
@@ -335,7 +357,7 @@ util::geomspace<units::quantity<double>> hdf5_file::get_log_dimscale(
 	if (dataset < 0)
 		throw std::runtime_error("Could not read table '" + dataset_name + '\'');
 
-	auto dimscale_data = get_dimscale(dataset, dim, parser);
+	auto dimscale_data = read_dimscale_data(dataset, dim, parser);
 
 	// Verify that the size is correct
 	if (dimscale_data.first.size() != (size_t)N_expected)

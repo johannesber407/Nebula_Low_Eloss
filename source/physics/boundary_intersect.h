@@ -101,6 +101,36 @@ struct boundary_intersect
 		default:
 			break;
 		}
+		//model energy loss due to surface excitations, if enabled
+		//the surface excitation probability is determined by the poisson distribution, where the mean number of excitations is determined by the surface excitation parameter of the material, the enerrgy and the surface crossing angle. (see for example)
+		//The surface ELF is found from optical data using the method described in https://doi.org/10.1103/PhysRevB.49.16684
+		real surface_energy_loss = 0;
+		if (surface_excitations)
+		{
+			//compute surface excitations only at interfaces between material and vacuum
+			if((material_idx_in == nbl::special_materials::VACUUM && material_mgr.is_physical(material_idx_out)) || (material_idx_out == nbl::special_materials::VACUUM && material_mgr.is_physical(material_idx_in)))
+			{
+				const material_index_t surface_material_idx =
+					material_idx_in == nbl::special_materials::VACUUM
+					? material_idx_out : material_idx_in;
+				const auto & surface_material = material_mgr[surface_material_idx];
+				const real surface_parameter = surface_material.surface_excitation_parameter;
+
+				//compute the mean number of surface excitations
+				const real mean_surface_excitations = surface_parameter /
+					(abs(cos_theta) * sqrtr(this_particle.kin_energy));
+
+				//poisson statistic
+				const unsigned int n_surface_excitations = rng.poisson(mean_surface_excitations);
+				const auto & surface_elf = surface_material.surface_elf;
+
+				for (unsigned int i = 0; i < n_surface_excitations && surface_elf.width() >= 2; ++i)
+				{
+					surface_energy_loss += surface_elf.get(rng.unit());
+				}
+			}
+		}
+		this_particle.kin_energy -= minr(surface_energy_loss, this_particle.kin_energy);
 
 
 		// determine the change in energy `dU` (in eV) when passing through the interface

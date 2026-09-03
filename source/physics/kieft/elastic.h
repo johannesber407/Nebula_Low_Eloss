@@ -23,6 +23,8 @@ template<bool gpu_flag,
 class kieft_elastic
 {
 public:
+	constexpr static bool is_gpu = gpu_flag;
+
 	/**
 	 * \brief Indicate that this class never generates secondary electrons.
 	 */

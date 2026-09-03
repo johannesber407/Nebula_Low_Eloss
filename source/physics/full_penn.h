@@ -20,6 +20,8 @@ template<bool gpu_flag,
 class full_penn
 {
 public:
+	constexpr static bool is_gpu = gpu_flag;
+
 	/**
 	 * \brief Indicate when this class generates secondary electrons
 	 */

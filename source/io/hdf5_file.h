@@ -2,6 +2,7 @@
 #define __HDF5_FILE_H_
 
 #include <string>
+#include <vector>
 #include <hdf5.h>
 #include "../common/units/unit_system.h"
 #include "../common/util/range.h"
@@ -137,6 +138,12 @@ public:
 	 * \param parser       Class used to parse the dimension scale's units
 	 */
 	util::linspace<units::quantity<double>> get_lin_dimscale(
+		std::string const & dataset_name,
+		int dim,
+		int N_expected,
+		units::unit_parser<double> const & parser = units::default_unit_parser()) const;
+
+	std::vector<units::quantity<double>> get_dimscale(
 		std::string const & dataset_name,
 		int dim,
 		int N_expected,

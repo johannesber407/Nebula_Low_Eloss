@@ -7,6 +7,15 @@
 template<typename...>
 struct material;
 
+namespace detail
+{
+	template<typename first_scatter_type, typename... scatter_types>
+	struct material_storage_traits
+	{
+		static constexpr bool is_gpu = first_scatter_type::is_gpu;
+	};
+}
+
 /**
  * \brief Material class.
  *
@@ -55,6 +64,23 @@ public:
 	 * than this value.
 	 */
 	real barrier = 0;
+
+	/**
+	 * \brief Surface excitation parameter.
+	 *
+	 * This parameter determines the probability of surface excitations when an electron
+	 * crosses the interface between the material and the vacuum.
+	 */
+	real surface_excitation_parameter = 0;
+
+	/**
+	 * \brief Surface ELF (Electron Loss Function).
+	 *
+	 * This is a table of the electron loss function as a function of energy,
+	 * which is used to calculate the energy loss due to surface excitations.
+	 */
+	nbl::util::table_1D<real,
+		detail::material_storage_traits<scatter_types...>::is_gpu> surface_elf;
 };
 
 #include "material.inl"
