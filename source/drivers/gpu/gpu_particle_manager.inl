@@ -407,7 +407,8 @@ template<typename material_manager_t>
 PHYSICS void gpu_particle_manager<material_manager_t>::set_scatter_event(
 	particle_index_t i, uint8_t event, real distance)
 {
-	_path_lengths[i] += distance;
+	if (_material_idx[i] >= 0)
+		_path_lengths[i] += distance;
 	// TODO: event types hardcoded here
 	switch (event)
 	{
@@ -428,7 +429,8 @@ PHYSICS void gpu_particle_manager<material_manager_t>::set_intersect_event(
 {
 	_status[i] = INTERSECT_EVENT;
 	_last_triangle[i] = t;
-	_path_lengths[i] += distance;
+	if (_material_idx[i] >= 0)
+		_path_lengths[i] += distance;
 }
 
 template<typename material_manager_t>

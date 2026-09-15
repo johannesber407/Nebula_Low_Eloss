@@ -226,7 +226,8 @@ PHYSICS void cpu_particle_manager<material_manager_t>::set_scatter_event(
 	{
 		particles[i].status = NO_EVENT;
 	}
-	particles[i].path_length += event.distance;
+	if (particles[i].current_material >= 0)
+		particles[i].path_length += event.distance;
 	particles[i].particle_data.pos += normalised(particles[i].particle_data.dir) * event.distance;
 }
 template<typename material_manager_t>
@@ -235,7 +236,8 @@ PHYSICS void cpu_particle_manager<material_manager_t>::set_intersect_event(
 {
 	particles[i].status = INTERSECT_EVENT;
 	particles[i].last_triangle = event.isect_triangle;
-	particles[i].path_length += event.isect_distance;
+	if (particles[i].current_material >= 0)
+		particles[i].path_length += event.isect_distance;
 	particles[i].particle_data.pos += normalised(particles[i].particle_data.dir) * event.isect_distance;
 }
 
