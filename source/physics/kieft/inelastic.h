@@ -74,8 +74,29 @@ public:
 		// Retrieve current particle from global memory
 		auto this_particle = particle_mgr[particle_idx];
 
-		// draw a random zero-momentum energy loss of the primary electron
+
+		//if reels data is available, use it to sample the total energy loss. else use kieft model
 		real omega0;
+		real omega;
+		real binding = 0;
+		if(reels_data_available)
+		{
+			// draw a random total energy loss for the primary electron
+			real U = rng.unit();
+			omega0 = exp(expr(_reels_icdf_table.get(U)));
+			omega = omega0;
+
+			// draw a random binding energy of the secondary electron.
+			{
+				const real x = logr(omega0);
+				const real y = rng.unit();
+				binding = _ionisation_table.get_rounddown(x, y);
+			}
+		}
+		else
+		{
+		// draw a random zero-momentum energy loss of the primary electron
+		
 		{// see thesis T.V. Eq. 3.82.
 			const real x = logr(this_particle.kin_energy);
 			const real y = rng.unit();
@@ -83,7 +104,6 @@ public:
 		}
 
 		// draw a random binding energy of the secondary electron.
-		real binding;
 		{
 			const real x = logr(omega0);
 			const real y = rng.unit();
@@ -91,7 +111,7 @@ public:
 		}
 
 		// draw a random total energy loss for the primary electron
-		real omega;
+		
 		{// see thesis T.V. Eq. 3.85.
 			real omega_max = 0.5_r*(this_particle.kin_energy + omega0 - _fermi); // upper limit of eq. 9 in Ashley, but corrected for the fermi energy
 			real omega_min = omega0;
@@ -125,6 +145,7 @@ public:
 				// with omega0 and omega_max as lower and upper limits respectively.
 				omega = omega0*omega_max / (omega0*(1 - U) + omega_max*U);
 			}
+		}
 		}
 
 		// special cases if there is no binding energy:
@@ -211,7 +232,9 @@ public:
 	 */
 	static CPU kieft_inelastic create(hdf5_file const & mat)
 	{
-		if (!mat.exists("kieft/inelastic"))
+		const bool has_kieft_data = mat.exists("/kieft/inelastic");
+		const bool has_reels_data = mat.exists("/REELS/w_b");
+		if (!has_kieft_data && !has_reels_data)
 			throw std::runtime_error("Kieft inelastic model not found in "
 				"material file " + mat.get_filename());
 
@@ -219,16 +242,63 @@ public:
 
 		inel._fermi = static_cast<real>(mat.get_property_quantity("fermi") / units::eV);
 		inel._band_gap = static_cast<real>(mat.get_property_quantity("band_gap", -1*units::eV) / units::eV);
+		inel.reels_data_available = has_reels_data;
+
+		if (inel.reels_data_available)
+		{
+			auto reels_data = mat.fill_table1D<real>("/REELS/w_b");
+			const auto omega = mat.get_dimscale("/REELS/w_b", 0, reels_data.width());
+			const int N = reels_data.width();
+			if (N < 2)
+				throw std::runtime_error("REELS spectrum must contain at least two points in " + mat.get_filename());
+			std::vector<real> cumulative(N, 0);
+			reels_data.mem_scope([&](real* values)
+			{
+				for (int i = 1; i < N; ++i)
+				{
+					const real weight = maxr(0, values[i - 1]);
+					const real step = static_cast<real>((omega[i] - omega[i - 1]) / units::eV);
+					cumulative[i] = cumulative[i - 1] + weight * step;
+				}
+			});
+
+			const real total = cumulative.back();
+			if (!(total > 0))
+				throw std::runtime_error("REELS spectrum has no positive weight in " + mat.get_filename());
+
+			auto reels_icdf = util::table_1D<real, false>::create(0, 1, N);
+			reels_icdf.mem_scope([&](real* values)
+			{
+				for (int i = 0; i < N; ++i)
+				{
+					const real probability = static_cast<real>(i) / (N - 1);
+					int j = 1;
+					while (j < N && cumulative[j] / total < probability)
+						++j;
+					if (j == N)
+						j = N - 1;
+					const real c0 = cumulative[j - 1] / total;
+					const real c1 = cumulative[j] / total;
+					const real fraction = c1 > c0 ? (probability - c0) / (c1 - c0) : 0;
+					const real energy = static_cast<real>((omega[j - 1] + fraction * (omega[j] - omega[j - 1])) / units::eV);
+					values[i] = std::log(maxr(energy, real(1e-12)));
+				}
+			});
+			inel._reels_icdf_table = util::table_1D<real, gpu_flag>::create(reels_icdf);
+			util::table_1D<real, false>::destroy(reels_icdf);
+		}
 
 		{
-			inel._log_imfp_table = mat.fill_table1D<real>("/kieft/inelastic/imfp");
-			auto K_range = mat.get_log_dimscale("/kieft/inelastic/imfp", 0,
+			const std::string imfp_path = has_kieft_data
+				? "/kieft/inelastic/imfp" : "/full_penn/imfp";
+			inel._log_imfp_table = mat.fill_table1D<real>(imfp_path);
+			auto K_range = mat.get_log_dimscale(imfp_path, 0,
 				inel._log_imfp_table.width());
 			inel._log_imfp_table.set_scale(
 				(real)std::log(K_range.front()/units::eV), (real)std::log(K_range.back()/units::eV));
 			inel._log_imfp_table.mem_scope([&](real* imfp_vector)
 			{
-				const real unit = real(mat.get_unit("/kieft/inelastic/imfp") * units::nm);
+				const real unit = real(mat.get_unit(imfp_path) * units::nm);
 				for (size_t x = 0; x < K_range.size(); ++x)
 				{
 					imfp_vector[x] = std::log(imfp_vector[x] * unit);
@@ -236,6 +306,7 @@ public:
 			});
 		}
 
+		if (!inel.reels_data_available)
 		{
 			inel._log_icdf_table = mat.fill_table2D<real>("/kieft/inelastic/w0_icdf");
 			auto K_range = mat.get_log_dimscale("/kieft/inelastic/w0_icdf", 0,
@@ -339,6 +410,9 @@ public:
 
 		target._log_imfp_table = util::table_1D<real, gpu_flag>::create(source._log_imfp_table);
 		target._log_icdf_table = util::table_2D<real, gpu_flag>::create(source._log_icdf_table);
+		target.reels_data_available = source.reels_data_available;
+		if (source.reels_data_available)
+			target._reels_icdf_table = util::table_1D<real, gpu_flag>::create(source._reels_icdf_table);
 		target._ionisation_table = util::table_2D<real, gpu_flag>::create(source._ionisation_table);
 
 		return target;
@@ -351,6 +425,7 @@ public:
 	{
 		util::table_1D<real, gpu_flag>::destroy(inel._log_imfp_table);
 		util::table_2D<real, gpu_flag>::destroy(inel._log_icdf_table);
+		util::table_1D<real, gpu_flag>::destroy(inel._reels_icdf_table);
 		util::table_2D<real, gpu_flag>::destroy(inel._ionisation_table);
 	}
 
@@ -376,6 +451,8 @@ private:
 	 */
 	util::table_2D<real, gpu_flag> _log_icdf_table;
 
+	util::table_1D<real, gpu_flag> _reels_icdf_table;
+
 	/**
 	 * \brief Ionization table, representing probability of ionizing a given
 	 * inner or outer shell.
@@ -390,6 +467,7 @@ private:
 
 	real _fermi;    ///< Fermi energy (eV)
 	real _band_gap; ///< Band gap (eV)
+	bool reels_data_available = false;
 
 	template<bool, bool, bool, bool, bool>
 	friend class kieft_inelastic;
