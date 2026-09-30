@@ -73,6 +73,7 @@ public:
 	{
 		// Retrieve current particle from global memory
 		auto this_particle = particle_mgr[particle_idx];
+		const real initial_energy = this_particle.kin_energy;
 
 
 		//if reels data is available, use it to sample the total energy loss. else use kieft model
@@ -83,7 +84,7 @@ public:
 		{
 			// draw a random total energy loss for the primary electron
 			real U = rng.unit();
-			omega0 = exp(expr(_reels_icdf_table.get(U)));
+			omega0 = expr(_reels_icdf_table.get(logr(this_particle.kin_energy), U));
 			omega = omega0;
 
 			// draw a random binding energy of the secondary electron.
@@ -111,7 +112,6 @@ public:
 		}
 
 		// draw a random total energy loss for the primary electron
-		
 		{// see thesis T.V. Eq. 3.85.
 			real omega_max = 0.5_r*(this_particle.kin_energy + omega0 - _fermi); // upper limit of eq. 9 in Ashley, but corrected for the fermi energy
 			real omega_min = omega0;
@@ -164,6 +164,7 @@ public:
 				if (optical_phonon_loss)
 				{
 					this_particle.kin_energy -= omega0;
+					particle_mgr.record_inelastic(particle_idx, initial_energy - this_particle.kin_energy);
 					particle_mgr[particle_idx] = this_particle;
 				}
 				return;
@@ -213,6 +214,7 @@ public:
 		}
 
 		this_particle.kin_energy -= omega;
+		particle_mgr.record_inelastic(particle_idx, initial_energy - this_particle.kin_energy);
 
 		if (momentum_conservation)
 		{

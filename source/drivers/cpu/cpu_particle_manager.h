@@ -71,6 +71,9 @@ public:
 	// Set next scattering event
 	inline PHYSICS void set_scatter_event(particle_index_t i, scatter_event event);
 	inline PHYSICS void set_intersect_event(particle_index_t i, intersect_event event);
+	inline PHYSICS void record_elastic(particle_index_t i, real loss);
+	inline PHYSICS void record_inelastic(particle_index_t i, real loss);
+	inline PHYSICS void record_surface(particle_index_t i, uint32_t count, real loss);
 
 protected:
 	enum particle_status
@@ -95,6 +98,12 @@ protected:
 		material_index_t current_material;
 		particle particle_data;
 		real path_length;
+		uint32_t n_elastic_scatterings;
+		uint32_t n_inelastic_scatterings;
+		uint32_t n_surface_excitations;
+		real elastic_loss;
+		real inelastic_loss;
+		real surface_loss;
 		primary_tag_t primary_tag; // Tag belonging to primary electron
 		uint32_t secondary_tag;    // Unique tag for this electron in the primary's cascade
 		triangle* last_triangle;

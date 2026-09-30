@@ -33,6 +33,12 @@ auto cpu_particle_manager<material_manager_t>::push(
 			-123,  // TODO: vacuum
 			primary_particles[i],
 			0,
+			0,
+			0,
+			0,
+			0,
+			0,
+			0,
 			tags[i],
 			0,
 			nullptr
@@ -52,7 +58,10 @@ void cpu_particle_manager<material_manager_t>::flush_detected(detect_function fu
 		if (this_particle.status == DETECTED)
 		{
 			func(this_particle.particle_data, this_particle.primary_tag,
-				this_particle.path_length);
+				this_particle.path_length, this_particle.n_elastic_scatterings,
+				this_particle.n_inelastic_scatterings, this_particle.n_surface_excitations,
+				this_particle.elastic_loss, this_particle.inelastic_loss,
+				this_particle.surface_loss);
 			this_particle.status = TERMINATED;
 		}
 	}
@@ -191,6 +200,12 @@ PHYSICS void cpu_particle_manager<material_manager_t>::create_secondary(
 		get_material_index(primary_idx),
 		secondary_particle,
 		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
 		primary_tag,
 		cascades[primary_tag].next_secondary_tag++,
 		nullptr
@@ -221,6 +236,10 @@ PHYSICS void cpu_particle_manager<material_manager_t>::set_scatter_event(
 	{
 		particles[i].status = SCATTER_EVENT;
 		particles[i].next_scatter = event.type;
+		if (event.type == 1)
+			particles[i].n_inelastic_scatterings++;
+		else if (event.type == 2)
+			particles[i].n_elastic_scatterings++;
 	}
 	else
 	{
@@ -239,6 +258,26 @@ PHYSICS void cpu_particle_manager<material_manager_t>::set_intersect_event(
 	if (particles[i].current_material >= 0)
 		particles[i].path_length += event.isect_distance;
 	particles[i].particle_data.pos += normalised(particles[i].particle_data.dir) * event.isect_distance;
+}
+
+template<typename material_manager_t>
+PHYSICS void cpu_particle_manager<material_manager_t>::record_elastic(particle_index_t i, real loss)
+{
+	particles[i].elastic_loss += loss;
+}
+
+template<typename material_manager_t>
+PHYSICS void cpu_particle_manager<material_manager_t>::record_inelastic(particle_index_t i, real loss)
+{
+	particles[i].inelastic_loss += loss;
+}
+
+template<typename material_manager_t>
+PHYSICS void cpu_particle_manager<material_manager_t>::record_surface(
+	particle_index_t i, uint32_t count, real loss)
+{
+	particles[i].n_surface_excitations += count;
+	particles[i].surface_loss += loss;
 }
 
 }} // namespace nbl::drivers

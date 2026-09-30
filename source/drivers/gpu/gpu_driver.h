@@ -220,10 +220,22 @@ private:
 	status_t* buffer_dout_status    = nullptr;
 	particle* buffer_dout_particles = nullptr;
 	real*     buffer_dout_path_lengths = nullptr;
+	uint32_t* buffer_dout_n_elastic = nullptr;
+	uint32_t* buffer_dout_n_inelastic = nullptr;
+	uint32_t* buffer_dout_n_surface = nullptr;
+	real*     buffer_dout_elastic_loss = nullptr;
+	real*     buffer_dout_inelastic_loss = nullptr;
+	real*     buffer_dout_surface_loss = nullptr;
 	uint32_t* buffer_dout_tags      = nullptr;
 	status_t* buffer_hout_status    = nullptr;
 	particle* buffer_hout_particles = nullptr;
 	real*     buffer_hout_path_lengths = nullptr;
+	uint32_t* buffer_hout_n_elastic = nullptr;
+	uint32_t* buffer_hout_n_inelastic = nullptr;
+	uint32_t* buffer_hout_n_surface = nullptr;
+	real*     buffer_hout_elastic_loss = nullptr;
+	real*     buffer_hout_inelastic_loss = nullptr;
+	real*     buffer_hout_surface_loss = nullptr;
 	uint32_t* buffer_hout_tags      = nullptr;
 
 	gpu_driver(gpu_driver const &) = delete;

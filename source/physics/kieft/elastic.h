@@ -74,6 +74,7 @@ public:
 	{
 		// Retrieve current particle from global memory
 		auto this_particle = particle_mgr[particle_idx];
+		const real initial_energy = this_particle.kin_energy;
 
 		real cos_theta, sin_theta;
 		{// draw a random elastic scatter angle by interpolating tables
@@ -113,6 +114,7 @@ public:
 		}
 
 		// Store the scattered particle in memory
+		particle_mgr.record_elastic(particle_idx, initial_energy - this_particle.kin_energy);
 		particle_mgr[particle_idx] = this_particle;
 	}
 

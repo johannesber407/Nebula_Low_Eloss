@@ -180,12 +180,17 @@ int main(int argc, char** argv)
 			d.simulate_to_end();
 
 			// Flush output data
-			d.flush_detected([&buff,&pixels](particle p, uint32_t t, real path_length)
+			d.flush_detected([&buff,&pixels](particle p, uint32_t t, real path_length,
+				uint32_t n_elastic, uint32_t n_inelastic, uint32_t n_surface,
+				real elastic_loss, real inelastic_loss, real surface_loss)
 			{
-					buff.add(std::array<float, 8>{
+					buff.add(std::array<float, 14>{
 					p.pos.x, p.pos.y, p.pos.z,
 						p.dir.x, p.dir.y, p.dir.z, p.kin_energy,
-						static_cast<float>(path_length)});
+						static_cast<float>(path_length), static_cast<float>(n_elastic),
+						static_cast<float>(n_inelastic), static_cast<float>(n_surface),
+						static_cast<float>(elastic_loss), static_cast<float>(inelastic_loss),
+						static_cast<float>(surface_loss)});
 				buff.add(std::array<int, 2>{
 					pixels[t].x, pixels[t].y});
 			});

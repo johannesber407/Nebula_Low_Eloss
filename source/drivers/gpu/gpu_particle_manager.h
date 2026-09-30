@@ -67,6 +67,9 @@ public:
 	// Set next scattering event
 	inline PHYSICS void set_scatter_event(particle_index_t i, uint8_t event, real distance);
 	inline PHYSICS void set_intersect_event(particle_index_t i, triangle* t, real distance);
+	inline PHYSICS void record_elastic(particle_index_t i, real loss);
+	inline PHYSICS void record_inelastic(particle_index_t i, real loss);
+	inline PHYSICS void record_surface(particle_index_t i, uint32_t count, real loss);
 
 	// Set particle to pending (for an inelastic event)
 	inline PHYSICS void pending(particle_index_t i);
@@ -81,6 +84,12 @@ private:
 	particle_index_t* _particle_idx  = nullptr; // Particle index, sorted by status
 	particle*         _particles     = nullptr; // The actual particle data (position, direction, energy)
 	real*             _path_lengths  = nullptr; // Cumulative path length for each particle
+	uint32_t*         _n_elastic_scatterings = nullptr; // Number of elastic scatterings for each particle
+	uint32_t*         _n_inelastic_scatterings= nullptr; //number of inelastic scatterings for each particle
+	uint32_t*         _n_surface_excitations = nullptr;	//number of surface excitations for each particle
+	real*             _elastic_loss= nullptr; // Cumulative energy loss due to elastic scattering for each particle (eV)
+	real*             _inelastic_loss= nullptr; //Cumulative energy loss due to inelastic scattering for each particle (eV)
+	real*             _surface_loss= nullptr; // Cumulative energy loss due to surface excitations for each particle (eV)
 	uint32_t*         _tags          = nullptr; // Each particle has an associated tag
 	material_index_t* _material_idx  = nullptr; // Current material the particle is in
 	triangle**        _last_triangle = nullptr; // Pointer to last intersected triangle

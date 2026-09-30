@@ -69,6 +69,7 @@ public:
 	{
 		// Retrieve current particle from global memory
 		auto this_particle = particle_mgr[particle_idx];
+		const real initial_energy = this_particle.kin_energy;
 
 		// "omega" is the energy lost by the primary. Represented as hbar*omega, units eV
 		real omega;
@@ -128,6 +129,7 @@ public:
 				const real costheta_pi_pf = clampr((2 * this_particle.kin_energy - omega - q * q) / (2 * sqrtr(this_particle.kin_energy*(this_particle.kin_energy - omega))), -1, 1);
 				const real sintheta_pi_pf = sqrtr(1 - costheta_pi_pf * costheta_pi_pf);
 				this_particle.kin_energy -= omega;
+				particle_mgr.record_inelastic(particle_idx, initial_energy - this_particle.kin_energy);
 				this_particle.dir = this_particle.dir*costheta_pi_pf + prim_normal_dir * sintheta_pi_pf;
 				particle_mgr[particle_idx] = this_particle;
 
@@ -239,6 +241,7 @@ public:
 				// energy loss due to longitudinal optical phonon excitation is assumed
 				// update energy and EXIT
 				this_particle.kin_energy -= omega;
+				particle_mgr.record_inelastic(particle_idx, initial_energy - this_particle.kin_energy);
 				particle_mgr[particle_idx] = this_particle;
 				return;
 			}
@@ -279,6 +282,7 @@ public:
 		}
 
 		this_particle.kin_energy -= omega;
+		particle_mgr.record_inelastic(particle_idx, initial_energy - this_particle.kin_energy);
 
 		// primary direction determined by non-relativistic momentum-conservation,
 		// i.e. sin(theta)*primary_dir_2 = primary_dir - cos(theta)*secondary_dir.

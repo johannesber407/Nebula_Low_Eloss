@@ -196,12 +196,17 @@ void worker_thread(worker_data& data,
 		d.push_to_buffer(data.primaries);
 
 		// Output detected electrons from buffer
-		auto running_count = d.flush_buffered([&buff, &data](particle p, uint32_t t, real path_length)
+		auto running_count = d.flush_buffered([&buff, &data](particle p, uint32_t t, real path_length,
+			uint32_t n_elastic, uint32_t n_inelastic, uint32_t n_surface,
+			real elastic_loss, real inelastic_loss, real surface_loss)
 		{
-			buff.add(std::array<float, 8>{
+			buff.add(std::array<float, 14>{
 				p.pos.x, p.pos.y, p.pos.z,
 				p.dir.x, p.dir.y, p.dir.z, p.kin_energy,
-				static_cast<float>(path_length)});
+				static_cast<float>(path_length), static_cast<float>(n_elastic),
+				static_cast<float>(n_inelastic), static_cast<float>(n_surface),
+				static_cast<float>(elastic_loss), static_cast<float>(inelastic_loss),
+				static_cast<float>(surface_loss)});
 			buff.add(std::array<int, 2>{
 				data.pixels[t].x, data.pixels[t].y});
 		});

@@ -20,6 +20,12 @@ CPU gpu_particle_manager<material_manager_t>
 	cuda::cuda_new<particle_index_t>(&manager._particle_idx, capacity);
 	cuda::cuda_new<particle>(&manager._particles, capacity);
 	cuda::cuda_new<real>(&manager._path_lengths, capacity);
+	cuda::cuda_new<uint32_t>(&manager._n_elastic_scatterings, capacity);
+	cuda::cuda_new<uint32_t>(&manager._n_inelastic_scatterings, capacity);
+	cuda::cuda_new<uint32_t>(&manager._n_surface_excitations, capacity);
+	cuda::cuda_new<real>(&manager._elastic_loss, capacity);
+	cuda::cuda_new<real>(&manager._inelastic_loss, capacity);
+	cuda::cuda_new<real>(&manager._surface_loss, capacity);
 	cuda::cuda_new<uint32_t>(&manager._tags, capacity);
 	cuda::cuda_new<material_index_t>(&manager._material_idx, capacity);
 	cuda::cuda_new<triangle*>(&manager._last_triangle, capacity);
@@ -55,6 +61,13 @@ CPU gpu_particle_manager<material_manager_t>
 			for (particle_index_t i = 0; i < capacity; ++i)
 				device[i] = 0;
 		});
+	for (auto data : {manager._n_elastic_scatterings, manager._n_inelastic_scatterings,
+		manager._n_surface_excitations})
+		cuda::cuda_mem_scope<uint32_t>(data, capacity,
+			[capacity](uint32_t* values) { for (particle_index_t i = 0; i < capacity; ++i) values[i] = 0; });
+	for (auto data : {manager._elastic_loss, manager._inelastic_loss, manager._surface_loss})
+		cuda::cuda_mem_scope<real>(data, capacity,
+			[capacity](real* values) { for (particle_index_t i = 0; i < capacity; ++i) values[i] = 0; });
 
 
 	/*
@@ -93,6 +106,12 @@ CPU void gpu_particle_manager<material_manager_t>::destroy(
 	cudaFree(manager._particle_idx);
 	cudaFree(manager._particles);
 	cudaFree(manager._path_lengths);
+	cudaFree(manager._n_elastic_scatterings);
+	cudaFree(manager._n_inelastic_scatterings);
+	cudaFree(manager._n_surface_excitations);
+	cudaFree(manager._elastic_loss);
+	cudaFree(manager._inelastic_loss);
+	cudaFree(manager._surface_loss);
 	cudaFree(manager._material_idx);
 	cudaFree(manager._last_triangle);
 	cudaFree(manager._radix_temp);
@@ -104,6 +123,12 @@ CPU void gpu_particle_manager<material_manager_t>::destroy(
 	manager._particle_idx = nullptr;
 	manager._particles = nullptr;
 	manager._path_lengths = nullptr;
+	manager._n_elastic_scatterings = nullptr;
+	manager._n_inelastic_scatterings = nullptr;
+	manager._n_surface_excitations = nullptr;
+	manager._elastic_loss = nullptr;
+	manager._inelastic_loss = nullptr;
+	manager._surface_loss = nullptr;
 	manager._material_idx = nullptr;
 	manager._last_triangle = nullptr;
 	manager._radix_temp = nullptr;
@@ -173,6 +198,12 @@ CPU auto gpu_particle_manager<material_manager_t>::push(
 				for(auto idx : free_indices)
 					path_length_p[idx] = 0;
 			});
+	for (auto data : {_n_elastic_scatterings, _n_inelastic_scatterings, _n_surface_excitations})
+		cuda::cuda_mem_scope<uint32_t>(data, _capacity,
+			[&free_indices](uint32_t* values) { for (auto idx : free_indices) values[idx] = 0; });
+	for (auto data : {_elastic_loss, _inelastic_loss, _surface_loss})
+		cuda::cuda_mem_scope<real>(data, _capacity,
+			[&free_indices](real* values) { for (auto idx : free_indices) values[idx] = 0; });
 
 	// free_indices.size() can never return more than the maximum value for particle_index_t
 	return static_cast<particle_index_t>(free_indices.size());
@@ -379,6 +410,12 @@ PHYSICS void gpu_particle_manager<material_manager_t>::create_secondary(
 	_status[secondary_idx] = NEW_SECONDARY;
 	_particles[secondary_idx] = secondary_particle;
 	_path_lengths[secondary_idx] = 0;
+	_n_elastic_scatterings[secondary_idx] = 0;
+	_n_inelastic_scatterings[secondary_idx] = 0;
+	_n_surface_excitations[secondary_idx] = 0;
+	_elastic_loss[secondary_idx] = 0;
+	_inelastic_loss[secondary_idx] = 0;
+	_surface_loss[secondary_idx] = 0;
 	_tags[secondary_idx] = _tags[primary_idx];
 	_material_idx[secondary_idx] = _material_idx[primary_idx];
 	_last_triangle[secondary_idx] = nullptr;
@@ -413,15 +450,39 @@ PHYSICS void gpu_particle_manager<material_manager_t>::set_scatter_event(
 	switch (event)
 	{
 	case 1:
+		++_n_inelastic_scatterings[i];
 		_status[i] = INELASTIC_EVENT;
 		break;
 	case 2:
+		++_n_elastic_scatterings[i];
 		_status[i] = ELASTIC_EVENT;
 		break;
 	default:
 		_status[i] = NO_EVENT;
 		break;
 	}
+}
+
+template<typename material_manager_t>
+PHYSICS void gpu_particle_manager<material_manager_t>::record_elastic(particle_index_t i, real loss)
+{
+	//++_n_elastic_scatterings[i];
+	_elastic_loss[i] += loss;
+}
+
+template<typename material_manager_t>
+PHYSICS void gpu_particle_manager<material_manager_t>::record_inelastic(particle_index_t i, real loss)
+{
+	//++_n_inelastic_scatterings[i];
+	_inelastic_loss[i] += loss;
+}
+
+template<typename material_manager_t>
+PHYSICS void gpu_particle_manager<material_manager_t>::record_surface(
+	particle_index_t i, uint32_t count, real loss)
+{
+	_n_surface_excitations[i] += count;
+	_surface_loss[i] += loss;
 }
 template<typename material_manager_t>
 PHYSICS void gpu_particle_manager<material_manager_t>::set_intersect_event(

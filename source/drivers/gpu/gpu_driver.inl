@@ -77,11 +77,23 @@ CPU gpu_driver<scatter_list_t, intersect_t, geometry_manager_t>::gpu_driver(
 	cuda::cuda_new<status_t>(&buffer_dout_status, particle_capacity);
 	cuda::cuda_new<particle>(&buffer_dout_particles, particle_capacity);
 	cuda::cuda_new<real>(&buffer_dout_path_lengths, particle_capacity);
+	cuda::cuda_new<uint32_t>(&buffer_dout_n_elastic, particle_capacity);
+	cuda::cuda_new<uint32_t>(&buffer_dout_n_inelastic, particle_capacity);
+	cuda::cuda_new<uint32_t>(&buffer_dout_n_surface, particle_capacity);
+	cuda::cuda_new<real>(&buffer_dout_elastic_loss, particle_capacity);
+	cuda::cuda_new<real>(&buffer_dout_inelastic_loss, particle_capacity);
+	cuda::cuda_new<real>(&buffer_dout_surface_loss, particle_capacity);
 	cuda::cuda_new<uint32_t>(&buffer_dout_tags, particle_capacity);
 
 	cudaMallocHost(&buffer_hout_status, particle_capacity*sizeof(status_t));
 	cudaMallocHost(&buffer_hout_particles, particle_capacity*sizeof(particle));
 	cudaMallocHost(&buffer_hout_path_lengths, particle_capacity*sizeof(real));
+	cudaMallocHost(&buffer_hout_n_elastic, particle_capacity*sizeof(uint32_t));
+	cudaMallocHost(&buffer_hout_n_inelastic, particle_capacity*sizeof(uint32_t));
+	cudaMallocHost(&buffer_hout_n_surface, particle_capacity*sizeof(uint32_t));
+	cudaMallocHost(&buffer_hout_elastic_loss, particle_capacity*sizeof(real));
+	cudaMallocHost(&buffer_hout_inelastic_loss, particle_capacity*sizeof(real));
+	cudaMallocHost(&buffer_hout_surface_loss, particle_capacity*sizeof(real));
 	cudaMallocHost(&buffer_hout_tags, particle_capacity*sizeof(uint32_t));
 
 	// Fill device arrays with particle manager's default values.
@@ -106,6 +118,12 @@ CPU gpu_driver<scatter_list_t, intersect_t, geometry_manager_t>::~gpu_driver()
 	cudaFree(buffer_dout_status);
 	cudaFree(buffer_dout_particles);
 	cudaFree(buffer_dout_path_lengths);
+	cudaFree(buffer_dout_n_elastic);
+	cudaFree(buffer_dout_n_inelastic);
+	cudaFree(buffer_dout_n_surface);
+	cudaFree(buffer_dout_elastic_loss);
+	cudaFree(buffer_dout_inelastic_loss);
+	cudaFree(buffer_dout_surface_loss);
 	cudaFree(buffer_dout_tags);
 
 	cudaFreeHost(buffer_hin_data);
@@ -115,6 +133,12 @@ CPU gpu_driver<scatter_list_t, intersect_t, geometry_manager_t>::~gpu_driver()
 	cudaFreeHost(buffer_hout_status);
 	cudaFreeHost(buffer_hout_particles);
 	cudaFreeHost(buffer_hout_path_lengths);
+	cudaFreeHost(buffer_hout_n_elastic);
+	cudaFreeHost(buffer_hout_n_inelastic);
+	cudaFreeHost(buffer_hout_n_surface);
+	cudaFreeHost(buffer_hout_elastic_loss);
+	cudaFreeHost(buffer_hout_inelastic_loss);
+	cudaFreeHost(buffer_hout_surface_loss);
 	cudaFreeHost(buffer_hout_tags);
 
 	cudaStreamDestroy(buffer_stream);
@@ -268,6 +292,18 @@ CPU void gpu_driver<scatter_list_t, intersect_t, geometry_manager_t>::buffer_det
 		_particles._capacity*sizeof(particle), cudaMemcpyDeviceToDevice);
 	cudaMemcpy(buffer_dout_path_lengths, _particles._path_lengths,
 		_particles._capacity*sizeof(real), cudaMemcpyDeviceToDevice);
+	cudaMemcpy(buffer_dout_n_elastic, _particles._n_elastic_scatterings,
+		_particles._capacity*sizeof(uint32_t), cudaMemcpyDeviceToDevice);
+	cudaMemcpy(buffer_dout_n_inelastic, _particles._n_inelastic_scatterings,
+		_particles._capacity*sizeof(uint32_t), cudaMemcpyDeviceToDevice);
+	cudaMemcpy(buffer_dout_n_surface, _particles._n_surface_excitations,
+		_particles._capacity*sizeof(uint32_t), cudaMemcpyDeviceToDevice);
+	cudaMemcpy(buffer_dout_elastic_loss, _particles._elastic_loss,
+		_particles._capacity*sizeof(real), cudaMemcpyDeviceToDevice);
+	cudaMemcpy(buffer_dout_inelastic_loss, _particles._inelastic_loss,
+		_particles._capacity*sizeof(real), cudaMemcpyDeviceToDevice);
+	cudaMemcpy(buffer_dout_surface_loss, _particles._surface_loss,
+		_particles._capacity*sizeof(real), cudaMemcpyDeviceToDevice);
 	cudaMemcpy(buffer_dout_tags, _particles._tags,
 		_particles._capacity*sizeof(uint32_t), cudaMemcpyDeviceToDevice);
 
@@ -291,6 +327,12 @@ CPU auto gpu_driver<scatter_list_t, intersect_t, geometry_manager_t>::flush_buff
 		cudaMemcpyDeviceToHost, buffer_stream);
 	cudaMemcpyAsync(buffer_hout_path_lengths, buffer_dout_path_lengths, capacity*sizeof(real),
 		cudaMemcpyDeviceToHost, buffer_stream);
+	cudaMemcpyAsync(buffer_hout_n_elastic, buffer_dout_n_elastic, capacity*sizeof(uint32_t), cudaMemcpyDeviceToHost, buffer_stream);
+	cudaMemcpyAsync(buffer_hout_n_inelastic, buffer_dout_n_inelastic, capacity*sizeof(uint32_t), cudaMemcpyDeviceToHost, buffer_stream);
+	cudaMemcpyAsync(buffer_hout_n_surface, buffer_dout_n_surface, capacity*sizeof(uint32_t), cudaMemcpyDeviceToHost, buffer_stream);
+	cudaMemcpyAsync(buffer_hout_elastic_loss, buffer_dout_elastic_loss, capacity*sizeof(real), cudaMemcpyDeviceToHost, buffer_stream);
+	cudaMemcpyAsync(buffer_hout_inelastic_loss, buffer_dout_inelastic_loss, capacity*sizeof(real), cudaMemcpyDeviceToHost, buffer_stream);
+	cudaMemcpyAsync(buffer_hout_surface_loss, buffer_dout_surface_loss, capacity*sizeof(real), cudaMemcpyDeviceToHost, buffer_stream);
 	cudaMemcpyAsync(buffer_hout_tags, buffer_dout_tags, capacity*sizeof(uint32_t),
 		cudaMemcpyDeviceToHost, buffer_stream);
 	cudaStreamSynchronize(buffer_stream);
@@ -307,7 +349,10 @@ CPU auto gpu_driver<scatter_list_t, intersect_t, geometry_manager_t>::flush_buff
 		if (buffer_hout_status[i] == particle_manager_t::DETECTED)
 		{
 			function(buffer_hout_particles[i], buffer_hout_tags[i],
-				buffer_hout_path_lengths[i]);
+				buffer_hout_path_lengths[i], buffer_hout_n_elastic[i],
+				buffer_hout_n_inelastic[i], buffer_hout_n_surface[i],
+				buffer_hout_elastic_loss[i], buffer_hout_inelastic_loss[i],
+				buffer_hout_surface_loss[i]);
 		}
 	}
 
