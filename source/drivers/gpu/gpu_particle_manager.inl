@@ -404,6 +404,13 @@ PHYSICS void gpu_particle_manager<material_manager_t>::add_particle(
 {
 	_status[target_idx] = NO_EVENT;
 	_particles[target_idx] = new_particle;
+	_path_lengths[target_idx] = 0;
+	_n_elastic_scatterings[target_idx] = 0;
+	_n_inelastic_scatterings[target_idx] = 0;
+	_n_surface_excitations[target_idx] = 0;
+	_elastic_loss[target_idx] = 0;
+	_inelastic_loss[target_idx] = 0;
+	_surface_loss[target_idx] = 0;
 	_tags[target_idx] = new_tag;
 	_secondary[target_idx] = false;
 	_material_idx[target_idx] = -123; // TODO

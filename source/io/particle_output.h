@@ -6,12 +6,11 @@
 #include "load_pri_file.h"
 
 template<
-	bool save_pld = true,
-	bool save_scattering = true,
-	bool save_primary_secondary = true>
+	bool save_pld = false,
+	bool save_scattering = false,
+	bool save_primary_secondary = false>
 struct particle_output
 {
-
     /**
 	 * \brief Print diagnostic info
 	 */
