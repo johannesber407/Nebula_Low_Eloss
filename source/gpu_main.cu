@@ -99,11 +99,7 @@ void worker_thread(worker_data& data,
 	}
 	auto materials = nbl::gpu_material_manager<gpu_material_t>::create(data.materials);
 
-	// Create driver
 	intersect_t inter;
-	driver d(data.capacity,
-		inter, materials, geometry,
-		data.min_energy, data.max_energy, seed);
 
 
 	// Do prescan, if desired
@@ -116,12 +112,16 @@ void worker_thread(worker_data& data,
 		}
 
 
+		driver prescan_driver(data.capacity,
+			inter, materials, geometry,
+			data.min_energy, data.max_energy, seed);
+
 		data.timer.start();
 		std::vector<std::pair<uint32_t, uint32_t>> prescan_stats; // Holds (running_count, detected_count)
 		// Push first batch
 		{
 			auto work_data = data.primaries.get_work(data.prescan_size);
-			auto particles_pushed = d.push(
+			auto particles_pushed = prescan_driver.push(
 				std::get<0>(work_data),  // particle*
 				std::get<1>(work_data),  // tag*
 				std::get<2>(work_data)); // number
@@ -130,10 +130,10 @@ void worker_thread(worker_data& data,
 		// Execute prescan
 		while (prescan_stats.back().first > 0)
 		{
-			d.do_iteration();
+			prescan_driver.do_iteration();
 
 			// TODO: this can be optimised to just one function with one loop.
-			prescan_stats.push_back({ d.get_running_count(), d.get_detected_count() });
+			prescan_stats.push_back({ prescan_driver.get_running_count(), prescan_driver.get_detected_count() });
 			std::clog << " \rExecuting pre-scan"
 				<< " | running: " << prescan_stats.back().first
 				<< " | detected: " << prescan_stats.back().second;
@@ -157,6 +157,7 @@ void worker_thread(worker_data& data,
 			batch_size = uint32_t(data.batch_factor*data.capacity / accumulator);
 		}
 		std::clog << "\nframe_size = " << frame_size << " | batch_size = " << batch_size << std::endl;
+		data.primaries.rewind();
 
 
 		// Notify other threads
@@ -175,6 +176,11 @@ void worker_thread(worker_data& data,
 		lk.unlock();
 	}
 
+
+	// Create a fresh production driver. Prescan particles must not remain in it.
+	driver d(data.capacity,
+		inter, materials, geometry,
+		data.min_energy, data.max_energy, seed);
 
 	// Start simulation
 	d.allocate_input_buffers(data.batch_size);

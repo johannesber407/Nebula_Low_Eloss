@@ -18,7 +18,9 @@ public:
 	 * \brief Construct to invalid state.
 	 */
 	explicit work_pool()
-		: next_primary(nullptr), next_tag(nullptr), primaries_to_go(0)
+		: first_primary(nullptr), first_tag(nullptr),
+			next_primary(nullptr), next_tag(nullptr),
+			primaries_to_go(0), total_primaries(0)
 	{}
 
 	/**
@@ -29,8 +31,19 @@ public:
 	 * \param N         Number of particles to be simulated
 	 */
 	work_pool(particle* primaries, uint32_t* tags, size_t N) :
-		next_primary(primaries), next_tag(tags), primaries_to_go(N)
+		first_primary(primaries), first_tag(tags),
+		next_primary(primaries), next_tag(tags),
+		primaries_to_go(N), total_primaries(N)
 	{}
+
+	/// Rewind the pool so all primaries can be processed again.
+	void rewind()
+	{
+		std::lock_guard<std::mutex> lock(mutex);
+		next_primary = first_primary;
+		next_tag = first_tag;
+		primaries_to_go = total_primaries;
+	}
 
 	/**
 	 * \brief Get work to be done
@@ -110,6 +123,9 @@ public:
 		next_primary = rhs.next_primary;
 		next_tag = rhs.next_tag;
 		primaries_to_go = rhs.primaries_to_go;
+		first_primary = rhs.first_primary;
+		first_tag = rhs.first_tag;
+		total_primaries = rhs.total_primaries;
 
 		return *this;
 	}
@@ -117,9 +133,12 @@ public:
 private:
 	mutable std::mutex mutex;
 
+	particle* first_primary;
+	uint32_t* first_tag;
 	particle* next_primary;
 	uint32_t* next_tag;
 	size_t primaries_to_go;
+	size_t total_primaries;
 };
 
 #endif // __WORK_POOL_H_
