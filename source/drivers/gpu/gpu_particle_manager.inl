@@ -27,6 +27,7 @@ CPU gpu_particle_manager<material_manager_t>
 	cuda::cuda_new<real>(&manager._inelastic_loss, capacity);
 	cuda::cuda_new<real>(&manager._surface_loss, capacity);
 	cuda::cuda_new<uint32_t>(&manager._tags, capacity);
+	cuda::cuda_new<bool>(&manager._secondary, capacity);
 	cuda::cuda_new<material_index_t>(&manager._material_idx, capacity);
 	cuda::cuda_new<triangle*>(&manager._last_triangle, capacity);
 
@@ -68,6 +69,8 @@ CPU gpu_particle_manager<material_manager_t>
 	for (auto data : {manager._elastic_loss, manager._inelastic_loss, manager._surface_loss})
 		cuda::cuda_mem_scope<real>(data, capacity,
 			[capacity](real* values) { for (particle_index_t i = 0; i < capacity; ++i) values[i] = 0; });
+	cuda::cuda_mem_scope<bool>(manager._secondary, capacity,
+		[capacity](bool* values) { for (particle_index_t i = 0; i < capacity; ++i) values[i] = false; });
 
 
 	/*
@@ -112,6 +115,7 @@ CPU void gpu_particle_manager<material_manager_t>::destroy(
 	cudaFree(manager._elastic_loss);
 	cudaFree(manager._inelastic_loss);
 	cudaFree(manager._surface_loss);
+	cudaFree(manager._secondary);
 	cudaFree(manager._material_idx);
 	cudaFree(manager._last_triangle);
 	cudaFree(manager._radix_temp);
@@ -129,6 +133,7 @@ CPU void gpu_particle_manager<material_manager_t>::destroy(
 	manager._elastic_loss = nullptr;
 	manager._inelastic_loss = nullptr;
 	manager._surface_loss = nullptr;
+	manager._secondary = nullptr;
 	manager._material_idx = nullptr;
 	manager._last_triangle = nullptr;
 	manager._radix_temp = nullptr;
@@ -179,6 +184,12 @@ CPU auto gpu_particle_manager<material_manager_t>::push(
 		{
 			for(size_t i = 0; i < free_indices.size(); ++i)
 				tag_p[free_indices[i]] = tags[i];
+		});
+	cuda::cuda_mem_scope<bool>(_secondary, _capacity,
+		[&free_indices](bool* values)
+		{
+			for (auto idx : free_indices)
+				values[idx] = false;
 		});
 	cuda::cuda_mem_scope<material_index_t>(_material_idx, _capacity,
 		[&free_indices](material_index_t* material_idx_p)
@@ -394,6 +405,7 @@ PHYSICS void gpu_particle_manager<material_manager_t>::add_particle(
 	_status[target_idx] = NO_EVENT;
 	_particles[target_idx] = new_particle;
 	_tags[target_idx] = new_tag;
+	_secondary[target_idx] = false;
 	_material_idx[target_idx] = -123; // TODO
 	_last_triangle[target_idx] = nullptr;
 }
@@ -417,6 +429,7 @@ PHYSICS void gpu_particle_manager<material_manager_t>::create_secondary(
 	_inelastic_loss[secondary_idx] = 0;
 	_surface_loss[secondary_idx] = 0;
 	_tags[secondary_idx] = _tags[primary_idx];
+	_secondary[secondary_idx] = true;
 	_material_idx[secondary_idx] = _material_idx[primary_idx];
 	_last_triangle[secondary_idx] = nullptr;
 }

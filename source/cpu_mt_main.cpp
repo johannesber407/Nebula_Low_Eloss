@@ -38,6 +38,9 @@ int main(int argc, char** argv)
 		"Physics models:\n";
 	scatter_physics<false>::print_info(std::clog);
 	intersect_t::print_info(std::clog);
+	std::clog << "\n" ;
+	std::clog << "Output:\n";
+	particle_output_t<>::print_info(std::clog);
 	std::clog << "\n" << std::string(80, '-') << "\n\n";
 
 	// Settings
@@ -161,7 +164,7 @@ int main(int argc, char** argv)
 		driver d(
 			inter, materials, geometry,
 			energy_threshold, materials.get_max_energy(), seed);
-		output_buffer buff(out_file, 1024*(8*sizeof(float) + 2*sizeof(int)));
+		output_buffer buff(out_file, 1024*particle_output_t<>::row_size);
 
 		for (;;)
 		{
@@ -182,17 +185,11 @@ int main(int argc, char** argv)
 			// Flush output data
 			d.flush_detected([&buff,&pixels](particle p, uint32_t t, real path_length,
 				uint32_t n_elastic, uint32_t n_inelastic, uint32_t n_surface,
-				real elastic_loss, real inelastic_loss, real surface_loss)
+				real elastic_loss, real inelastic_loss, real surface_loss, bool secondary)
 			{
-					buff.add(std::array<float, 14>{
-					p.pos.x, p.pos.y, p.pos.z,
-						p.dir.x, p.dir.y, p.dir.z, p.kin_energy,
-						static_cast<float>(path_length), static_cast<float>(n_elastic),
-						static_cast<float>(n_inelastic), static_cast<float>(n_surface),
-						static_cast<float>(elastic_loss), static_cast<float>(inelastic_loss),
-						static_cast<float>(surface_loss)});
-				buff.add(std::array<int, 2>{
-					pixels[t].x, pixels[t].y});
+				particle_output_t<>::add(buff, p, pixels[t], path_length,
+					n_elastic, n_inelastic, n_surface,
+					elastic_loss, inelastic_loss, surface_loss, secondary);
 			});
 		}
 

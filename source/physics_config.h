@@ -12,6 +12,7 @@
 #include "physics/kieft/elastic.h"
 #include "physics/full_penn.h"
 #include "physics/boundary_intersect.h"
+#include "io/particle_output.h"
 
 /*
  * Physics definitions below
@@ -53,5 +54,14 @@ using scatter_physics = scatter_list<
 	inelastic_scatter<gpu_flag>,
 	elastic_scatter<gpu_flag>
 >;
+
+template<
+	bool save_pld = true,
+	bool save_scattering = true,
+	bool save_primary_secondary = true>
+using particle_output_t = particle_output<
+	save_pld,
+	save_scattering,
+	save_primary_secondary>;
 
 #endif

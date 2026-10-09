@@ -31,6 +31,7 @@ using driver = nbl::drivers::gpu_driver<
 	intersect_t,
 	geometry_t
 >;
+using output_t = particle_output_t<>;
 
 struct worker_data
 {
@@ -178,7 +179,7 @@ void worker_thread(worker_data& data,
 	// Start simulation
 	d.allocate_input_buffers(data.batch_size);
 	d.push_to_buffer(data.primaries);
-	output_buffer buff(data.out_file, 1024*(8*sizeof(float) + 2*sizeof(int)));
+	output_buffer buff(data.out_file, 1024*output_t::row_size);
 
 	for (;;)
 	{
@@ -198,17 +199,11 @@ void worker_thread(worker_data& data,
 		// Output detected electrons from buffer
 		auto running_count = d.flush_buffered([&buff, &data](particle p, uint32_t t, real path_length,
 			uint32_t n_elastic, uint32_t n_inelastic, uint32_t n_surface,
-			real elastic_loss, real inelastic_loss, real surface_loss)
+			real elastic_loss, real inelastic_loss, real surface_loss, bool secondary)
 		{
-			buff.add(std::array<float, 14>{
-				p.pos.x, p.pos.y, p.pos.z,
-				p.dir.x, p.dir.y, p.dir.z, p.kin_energy,
-				static_cast<float>(path_length), static_cast<float>(n_elastic),
-				static_cast<float>(n_inelastic), static_cast<float>(n_surface),
-				static_cast<float>(elastic_loss), static_cast<float>(inelastic_loss),
-				static_cast<float>(surface_loss)});
-			buff.add(std::array<int, 2>{
-				data.pixels[t].x, data.pixels[t].y});
+			output_t::add(buff, p, data.pixels[t], path_length,
+				n_elastic, n_inelastic, n_surface,
+				elastic_loss, inelastic_loss, surface_loss, secondary);
 		});
 		data.running_count[gpu_id] = running_count;
 
@@ -232,6 +227,8 @@ int main(int argc, char** argv)
 		"Physics models:\n";
 	scatter_physics<true>::print_info(std::clog);
 	intersect_t::print_info(std::clog);
+	std::clog << "Output:\n";
+	output_t::print_info(std::clog);
 	std::clog << "\n" << std::string(80, '-') << "\n\n";
 
 

@@ -61,7 +61,7 @@ void cpu_particle_manager<material_manager_t>::flush_detected(detect_function fu
 				this_particle.path_length, this_particle.n_elastic_scatterings,
 				this_particle.n_inelastic_scatterings, this_particle.n_surface_excitations,
 				this_particle.elastic_loss, this_particle.inelastic_loss,
-				this_particle.surface_loss);
+				this_particle.surface_loss, this_particle.secondary_tag != 0);
 			this_particle.status = TERMINATED;
 		}
 	}

@@ -227,6 +227,7 @@ private:
 	real*     buffer_dout_inelastic_loss = nullptr;
 	real*     buffer_dout_surface_loss = nullptr;
 	uint32_t* buffer_dout_tags      = nullptr;
+	bool*     buffer_dout_secondary = nullptr;
 	status_t* buffer_hout_status    = nullptr;
 	particle* buffer_hout_particles = nullptr;
 	real*     buffer_hout_path_lengths = nullptr;
@@ -237,6 +238,7 @@ private:
 	real*     buffer_hout_inelastic_loss = nullptr;
 	real*     buffer_hout_surface_loss = nullptr;
 	uint32_t* buffer_hout_tags      = nullptr;
+	bool*     buffer_hout_secondary = nullptr;
 
 	gpu_driver(gpu_driver const &) = delete;
 	gpu_driver& operator=(gpu_driver const &) = delete;

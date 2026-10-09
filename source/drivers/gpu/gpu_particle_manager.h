@@ -91,6 +91,7 @@ private:
 	real*             _inelastic_loss= nullptr; //Cumulative energy loss due to inelastic scattering for each particle (eV)
 	real*             _surface_loss= nullptr; // Cumulative energy loss due to surface excitations for each particle (eV)
 	uint32_t*         _tags          = nullptr; // Each particle has an associated tag
+	bool*             _secondary     = nullptr; // Whether each particle is a secondary electron
 	material_index_t* _material_idx  = nullptr; // Current material the particle is in
 	triangle**        _last_triangle = nullptr; // Pointer to last intersected triangle
 
