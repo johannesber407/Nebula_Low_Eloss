@@ -40,7 +40,7 @@ int main(int argc, char** argv)
 	intersect_t::print_info(std::clog);
 	std::clog << "\n" ;
 	std::clog << "Output:\n";
-	particle_output_t<>::print_info(std::clog);
+	particle_output_t::print_info(std::clog);
 	std::clog << "\n" << std::string(80, '-') << "\n\n";
 
 	// Settings
@@ -164,7 +164,7 @@ int main(int argc, char** argv)
 		driver d(
 			inter, materials, geometry,
 			energy_threshold, materials.get_max_energy(), seed);
-		output_buffer buff(out_file, 1024*particle_output_t<>::row_size);
+		output_buffer buff(out_file, 1024*particle_output_t::row_size);
 
 		for (;;)
 		{
@@ -187,7 +187,7 @@ int main(int argc, char** argv)
 				uint32_t n_elastic, uint32_t n_inelastic, uint32_t n_surface,
 				real elastic_loss, real inelastic_loss, real surface_loss, bool secondary)
 			{
-				particle_output_t<>::add(buff, p, pixels[t], path_length,
+				particle_output_t::add(buff, p, pixels[t], path_length,
 					n_elastic, n_inelastic, n_surface,
 					elastic_loss, inelastic_loss, surface_loss, secondary);
 			});

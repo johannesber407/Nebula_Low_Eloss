@@ -42,6 +42,7 @@ using elastic_scatter = nbl::scatter::kieft_elastic<gpu_flag,
 
 // Material boundary intersection
 using intersect_t = boundary_intersect<
+	true, // Surface excitations
 	true, // Quantum-mechanical (probabilistic) transmission
 	true, // Interface refraction
 	false // Kieft & Bosch empirical interface absorption
@@ -55,13 +56,10 @@ using scatter_physics = scatter_list<
 	elastic_scatter<gpu_flag>
 >;
 
-template<
-	bool save_pld = true,
-	bool save_scattering = true,
-	bool save_primary_secondary = true>
 using particle_output_t = particle_output<
-	save_pld,
-	save_scattering,
-	save_primary_secondary>;
+	true, // Save path length
+	true, // Save scattering counts and energy losses
+	true  // Save primary/secondary flag
+>;
 
 #endif

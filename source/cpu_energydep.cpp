@@ -40,7 +40,7 @@ int main(int argc, char** argv)
 	scatter_physics<false>::print_info(std::clog);
 	intersect_t::print_info(std::clog);
 	std::clog << "Output:\n";
-	particle_output_t<>::print_info(std::clog);
+	particle_output_t::print_info(std::clog);
 	std::clog << "\n" << std::string(80, '-') << "\n\n";
 
 	// Settings
@@ -203,7 +203,7 @@ int main(int argc, char** argv)
 				uint32_t n_elastic, uint32_t n_inelastic, uint32_t n_surface,
 				real elastic_loss, real inelastic_loss, real surface_loss, bool secondary)
 			{
-				particle_output_t<>::add(detect_buff, p, pixels[t], path_length,
+				particle_output_t::add(detect_buff, p, pixels[t], path_length,
 					n_elastic, n_inelastic, n_surface,
 					elastic_loss, inelastic_loss, surface_loss, secondary);
 			});

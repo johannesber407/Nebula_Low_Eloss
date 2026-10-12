@@ -9,6 +9,7 @@
  *
  * See  (Kieft paper)
  *
+ * \tparam surface_excitations Consider surface excitations (see for example: W. Werner et al. https://doi.org/10.1016/j.susc.2007.06.076)
  * \tparam quantum_transmission Consider probabilistic transmission
  * \tparam interface_refraction Consider refraction at interface
  * \tparam interface_absorption Empirical interface absorption (Kieft et al.

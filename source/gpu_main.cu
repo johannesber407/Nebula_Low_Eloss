@@ -31,7 +31,7 @@ using driver = nbl::drivers::gpu_driver<
 	intersect_t,
 	geometry_t
 >;
-using output_t = particle_output_t<>;
+using output_t = particle_output_t;
 
 struct worker_data
 {

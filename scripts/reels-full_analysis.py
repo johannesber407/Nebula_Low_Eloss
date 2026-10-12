@@ -41,7 +41,7 @@ print(len(data), "primary electrons detected")
 N_bins = 4*int(np.max(data['E']))
 spectrum, bin_edges = np.histogram(data['E'], bins=N_bins)
 bin_centers = (bin_edges[1:] + bin_edges[:-1]) / 2
-np.savetxt(output_path.format("primaries"), np.column_stack((bin_centers, spectrum)), delimiter=",", header="omega, intensity", fmt='%f, %f')
+np.savetxt(output_path.format("energy"), np.column_stack((bin_centers, spectrum)), delimiter=",", header="energy (eV), intensity", fmt='%f, %f')
 
 #histogram of path lengths
 N_bins=4*int(np.max(data['path_length']))
