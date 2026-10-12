@@ -85,14 +85,15 @@ struct boundary_intersect
 			if(material_mgr.is_physical(material_idx_in) != material_mgr.is_physical(material_idx_out))
 			{
 				const material_index_t surface_material_idx =
-					material_idx_in == nbl::special_materials::VACUUM
-					? material_idx_out : material_idx_in;
+					material_mgr.is_physical(material_idx_in)
+					? material_idx_in : material_idx_out;
 				const auto & surface_material = material_mgr[surface_material_idx];
 				const real surface_parameter = surface_material.surface_excitation_parameter;
+				const real abs_cos_theta = absr(cos_theta);
 
 				//compute the mean number of surface excitations
 				const real mean_surface_excitations = surface_parameter /
-					(abs(cos_theta) * sqrtr(this_particle.kin_energy));
+					(abs_cos_theta * sqrtr(this_particle.kin_energy));
 
 				//poisson statistic
 				n_surface_excitations = rng.poisson(mean_surface_excitations);
