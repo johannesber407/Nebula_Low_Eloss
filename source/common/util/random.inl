@@ -24,6 +24,10 @@ namespace detail
 			return std::generate_canonical<real, std::numeric_limits<real>::digits>(_generator);
 #endif
 		}
+		CPU real normal(real standard_deviation)
+		{
+			return std::normal_distribution<real>(0, standard_deviation)(_generator);
+		}
 		CPU unsigned int poisson(real mean)
 		{
 			return std::poisson_distribution<unsigned int>(mean)(_generator);
@@ -54,6 +58,19 @@ namespace detail
 			return curand_uniform_double(&_rand_state);
 #else // USE_DOUBLE
 			return curand_uniform(&_rand_state);
+#endif // USE_DOUBLE
+#else // CUDA_COMPILING
+			// TODO: proper error message.
+			return 0;
+#endif // CUDA_COMPILING
+		}
+		PHYSICS real normal(real standard_deviation)
+		{
+#if CUDA_COMPILING
+#if USE_DOUBLE
+			return standard_deviation*curand_normal_double(&_rand_state);
+#else // USE_DOUBLE
+			return standard_deviation*curand_normal(&_rand_state);
 #endif // USE_DOUBLE
 #else // CUDA_COMPILING
 			// TODO: proper error message.

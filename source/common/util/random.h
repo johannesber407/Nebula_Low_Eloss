@@ -83,6 +83,14 @@ public:
 	}
 
 	/**
+	 * \brief Normally distributed around zero with the given standard deviation.
+	 */
+	PHYSICS real normal(real standard_deviation)
+	{
+		return base_type::normal(standard_deviation);
+	}
+
+	/**
 	 * \brief Poisson distributed non-negative integer with the given mean.
 	 */
 	PHYSICS unsigned int poisson(real mean)

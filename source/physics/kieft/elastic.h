@@ -16,10 +16,12 @@ namespace nbl { namespace scatter {
  * \tparam gpu_flag             Is the code to be run on a GPU?
  * \tparam acoustic_phonon_loss Lose energy to acoustic phonons
  * \tparam atomic_recoil_loss   Lose energy to atomic recoil for Mott scattering.
+ * \tparam include_doppler      Include thermal Doppler broadening in recoil loss.
  */
 template<bool gpu_flag,
 	bool acoustic_phonon_loss = true,
-	bool atomic_recoil_loss = true>
+	bool atomic_recoil_loss = true,
+	bool include_doppler = false>
 class kieft_elastic
 {
 public:
@@ -39,7 +41,8 @@ public:
 			" * Kieft & Bosch elastic model\n"
 			"   Options:\n"
 			"     - Acoustic phonon loss: " << acoustic_phonon_loss << "\n"
-			"     - Atomic recoil loss: " << atomic_recoil_loss << "\n";
+			"     - Atomic recoil loss: " << atomic_recoil_loss << "\n"
+			"     - Doppler broadening: " << include_doppler << "\n";
 	}
 
 	/**
@@ -109,7 +112,16 @@ public:
 			// There is no reference for this formula, can only be found in the Kieft & Bosch code.
 			if (atomic_recoil_loss)
 			{
-				this_particle.kin_energy -= _recoil_const*(1 - cos_theta) * this_particle.kin_energy;
+				real recoil_loss = _recoil_const*(1 - cos_theta) * this_particle.kin_energy;
+				if (include_doppler)
+				{
+					const real standard_deviation = sqrtr(
+						2 * 8.617333262e-5_r * _temperature * recoil_loss);
+					recoil_loss += rng.normal(standard_deviation);
+					
+				}
+				
+				this_particle.kin_energy -= recoil_loss;
 			}
 		}
 
@@ -165,6 +177,8 @@ public:
 		el._recoil_const =  static_cast<real>( //removed factor 2 from orginal implementation 
 			2 * (9.109383e-28 * units::g) // 2 * (electron mass)
 			/ mat.get_property_quantity("effective_A"));
+		if (include_doppler)
+			el._temperature = static_cast<real>(mat.get_property_quantity("temperature") / units::K);
 
 		return el;
 	}
@@ -173,12 +187,14 @@ public:
 	 * \brief Clone from another instance.
 	 */
 	template<bool source_gpu_flag>
-	static CPU kieft_elastic create(kieft_elastic<source_gpu_flag, acoustic_phonon_loss, atomic_recoil_loss> const & source)
+	static CPU kieft_elastic create(kieft_elastic<source_gpu_flag, acoustic_phonon_loss,
+		atomic_recoil_loss, include_doppler> const & source)
 	{
 		kieft_elastic target;
 
 		target._phonon_loss = source._phonon_loss;
 		target._recoil_const = source._recoil_const;
+		target._temperature = source._temperature;
 
 		target._log_imfp_table = util::table_1D<real, gpu_flag>::create(source._log_imfp_table);
 		target._icdf_table = util::table_2D<real, gpu_flag>::create(source._icdf_table);
@@ -218,8 +234,9 @@ private:
 
 	real _phonon_loss;  ///< Amount of energy lost in a phonon event (eV)
 	real _recoil_const; ///< Amount of energy lost in a Mott event (eV)
+	real _temperature;  ///< Material temperature (K)
 
-	template<bool, bool, bool>
+	template<bool, bool, bool, bool>
 	friend class kieft_elastic;
 };
 
