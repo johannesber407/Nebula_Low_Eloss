@@ -12,9 +12,9 @@ For instructions on how to install and use this software, see the original
 # Adjustments
 Adjustments of Nebula that have been implemented, to make Nebula more precise for computing the Energy loss spectra especially for low losses:
 * Use the correct formula for losses due to recoil - in the original version of Nebula, the recoil losses were implemented incorrectly (see: https://github.com/Nebula-simulator/Nebula/issues/17)
+* Implement Doppler broadening of elastic recoil at finite temperatures (see for example  https://doi.org/10.1002/sia.1121 )
 * Implement losses due to surface excitations (see for example https://doi.org/10.1016/j.susc.2007.06.076) 
 * Make it possible to access the path lengths, number of scatterings, and information whether a particle is a secondary or a primary. 
 
-# Further Plans for Adjustments
 
-* Implement Doppler broadening at finite temperatures (see for example  https://doi.org/10.1002/sia.1121 )
+
