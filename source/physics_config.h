@@ -38,7 +38,7 @@ template<bool gpu_flag>
 using elastic_scatter = nbl::scatter::kieft_elastic<gpu_flag,
 	true, // Acoustic phonon loss
 	true, // Atomic recoil loss
-	false//true  // Doppler broadening
+	true  // Doppler broadening
 >;
 
 // Material boundary intersection

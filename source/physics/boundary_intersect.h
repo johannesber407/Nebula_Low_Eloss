@@ -98,6 +98,14 @@ struct boundary_intersect
 
 				//poisson statistic
 				n_surface_excitations = rng.poisson(mean_surface_excitations);
+
+				//edge case: too many surface excitations (more than 10 (arbitrary number)). In this case, we just set the number of surface excitations to 10.
+				if (n_surface_excitations > 10)
+				{
+					n_surface_excitations = 10;
+				}
+
+
 				const auto & surface_elf = surface_material.surface_elf;
 
 				for (unsigned int i = 0; i < n_surface_excitations && surface_elf.width() >= 2; ++i)

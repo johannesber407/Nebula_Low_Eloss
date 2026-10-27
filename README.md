@@ -1,4 +1,4 @@
-# Nebula
+# Nebula Low Eloss
 
 This is a project for adjusting the [Nebula](https://github.com/nebula-simulator/nebula) Monte Carlo simulator for precise calculations of low energy losses. 
 
